@@ -107,3 +107,40 @@ class TestCLI:
 
         assert result.returncode == 0, "Exit code should be 0 when change is below threshold"
         assert "Differences found: 0" in result.stdout, "stdout should show 'Differences found: 0'"
+
+    def test_cli_saves_output_image(self, images_with_two_changes_files, temp_output_dir):
+        """Test that CLI creates output folder if missing and saves output image (requirement 5)."""
+        import os
+        import cv2
+
+        baseline_path, current_path = images_with_two_changes_files
+        new_output_dir = os.path.join(temp_output_dir, "new_output")
+
+        assert not os.path.exists(new_output_dir), "new_output folder should not exist before CLI runs"
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "visual_diff.cli",
+                baseline_path,
+                current_path,
+                new_output_dir,
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 1, "Exit code should be 1 when differences found"
+
+        assert os.path.exists(new_output_dir), "Output folder should be created"
+
+        png_files = [f for f in os.listdir(new_output_dir) if f.endswith(".png")]
+        assert len(png_files) == 1, "Exactly one .png file should be created in output folder"
+
+        output_image_path = os.path.join(new_output_dir, png_files[0])
+        output_img = cv2.imread(output_image_path)
+        current_img = cv2.imread(current_path)
+
+        assert output_img is not None, "Output image should be readable"
+        assert output_img.shape == current_img.shape, "Output image should have same dimensions as current image"
