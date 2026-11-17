@@ -7,20 +7,25 @@ def find_differences(baseline, current, threshold=10):
     Compare two images and find regions with differences above threshold.
 
     Returns list of difference regions as dicts with 'x', 'y', 'w', 'h' keys.
-    Differences with area < threshold are filtered out.
+    Threshold is based on pixel count (number of changed pixels).
+    Uses connected components to accurately count pixels per region.
     """
     diff = cv2.absdiff(baseline, current)
     gray_diff = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
 
     _, binary = cv2.threshold(gray_diff, 1, 255, cv2.THRESH_BINARY)
 
-    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary, connectivity=8)
 
     differences = []
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area >= threshold:
-            x, y, w, h = cv2.boundingRect(contour)
+    for label_idx in range(1, num_labels):
+        pixel_count = stats[label_idx, cv2.CC_STAT_AREA]
+
+        if pixel_count >= threshold:
+            x = stats[label_idx, cv2.CC_STAT_LEFT]
+            y = stats[label_idx, cv2.CC_STAT_TOP]
+            w = stats[label_idx, cv2.CC_STAT_WIDTH]
+            h = stats[label_idx, cv2.CC_STAT_HEIGHT]
             differences.append({"x": x, "y": y, "w": w, "h": h})
 
     return differences

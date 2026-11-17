@@ -73,6 +73,43 @@ def current_image_with_20px_change():
 
 
 @pytest.fixture
+def current_image_with_thin_line():
+    """Create current image with a thin horizontal line change (1x100 pixels)."""
+    img = np.ones((100, 100, 3), dtype=np.uint8) * 255
+    img[50, 0:100] = [0, 0, 255]  # Horizontal line 1x100 = 100 pixels
+    return img
+
+
+@pytest.fixture
+def current_image_with_5x4_block():
+    """Create current image with a 5x4 block change (20 pixels)."""
+    img = np.ones((100, 100, 3), dtype=np.uint8) * 255
+    img[10:15, 10:14] = [0, 0, 255]  # 5x4 red rectangle = 20 pixels
+    return img
+
+
+@pytest.fixture
+def images_with_overlapping_regions_files(temp_images_dir):
+    """Create images with two separate regions: vertical line and U shape."""
+    baseline = np.ones((150, 60, 3), dtype=np.uint8) * 255
+    current = np.ones((150, 60, 3), dtype=np.uint8) * 255
+
+    current[10:110, 20] = [0, 0, 255]  # Vertical line 100x1 px
+    current[5, 16:25] = [0, 0, 255]    # Top of U: 1x9 px
+    current[6:15, 16] = [0, 0, 255]    # Left side of U: 9x1 px
+    current[6:15, 24] = [0, 0, 255]    # Right side of U: 9x1 px
+    # Total U: 9 + 9 + 9 = 27 pixels (doesn't touch line)
+
+    baseline_path = os.path.join(temp_images_dir, "baseline.png")
+    current_path = os.path.join(temp_images_dir, "current.png")
+
+    cv2.imwrite(baseline_path, baseline)
+    cv2.imwrite(current_path, current)
+
+    return baseline_path, current_path
+
+
+@pytest.fixture
 def temp_image_files(baseline_image, current_image_with_large_change, temp_images_dir):
     """Create temporary image files for CLI tests."""
     baseline_path = os.path.join(temp_images_dir, "baseline.png")
